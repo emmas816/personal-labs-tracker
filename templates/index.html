@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labs Tracker - Premium Blood Test Database Manager</title>
+    <meta name="description" content="Parse, organize, and track your blood test results with Gemini 3.5 Flash and openpyxl.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bae0fd',
+                            300: '#7cc8fc',
+                            400: '#38aef9',
+                            500: '#0e94ea',
+                            600: '#0276c7',
+                            700: '#035ea1',
+                            800: '#075084',
+                            900: '#0c436d',
+                            950: '#082b49',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 174, 249, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 174, 249, 0.5);
+        }
+        
+        /* Glassmorphism Background Glows */
+        .glow-sphere {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(130px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.45;
+        }
+        
+        .glow-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #0e94ea 0%, #3b82f6 100%);
+            top: -100px;
+            left: -100px;
+        }
+        
+        .glow-2 {
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, #8b5cf6 0%, #d946ef 100%);
+            bottom: -150px;
+            right: -100px;
+        }
+        
+        /* Keyframe animations */
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.05); }
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse-slow 8s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen relative overflow-x-hidden font-sans flex flex-col">
+
+    <!-- Ambient background glows -->
+    <div class="glow-sphere glow-1 animate-pulse-slow"></div>
+    <div class="glow-sphere glow-2 animate-pulse-slow" style="animation-delay: 4s;"></div>
+
+    <!-- Header Section -->
+    <header class="w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between z-10 border-b border-slate-900/60 backdrop-blur-md">
+        <div class="flex items-center space-x-3">
+            <!-- Icon -->
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+            </div>
+            <span class="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-brand-400 bg-clip-text text-transparent">Labs Tracker</span>
+        </div>
+        <div class="flex items-center space-x-2 text-xs text-slate-400 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-800">
+            <span class="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <span>Local Server Active</span>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow z-10 w-full max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left Column: Input Form -->
+        <section class="lg:col-span-7 flex flex-col space-y-6">
+            <div class="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                <!-- Decorative Top Border Accent -->
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-brand-500 via-indigo-500 to-transparent"></div>
+                
+                <h1 class="text-xl font-bold mb-1 text-slate-100">Upload and Track Lab Results</h1>
+                <p class="text-slate-400 text-sm mb-6">Convert paper or digital lab documents into a unified, structured Excel template.</p>
+                
+                <form id="lab-form" class="space-y-6">
+                    
+                    <!-- Excel Path Input -->
+                    <div>
+                        <label for="excel-path" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Excel File Path</label>
+                        <div class="relative rounded-lg shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <input type="text" id="excel-path" name="excel_path" value="blood_tests.xlsx" 
+                                class="block w-full pl-10 pr-24 py-3 bg-slate-950/80 border border-slate-800 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-lg text-slate-200 text-sm placeholder-slate-600 transition-all outline-none"
+                                placeholder="e.g. c:/path/to/my_labs.xlsx">
+                            <div class="absolute inset-y-0 right-0 pr-2 flex items-center">
+                                <button type="button" id="btn-open-excel" 
+                                    class="text-xs bg-slate-900 hover:bg-slate-800 text-brand-400 border border-slate-850 hover:border-brand-500/30 px-3 py-1.5 rounded-md transition-all font-medium">
+                                    Open File
+                                </button>
+                            </div>
+                        </div>
+                        <p class="mt-1.5 text-xs text-slate-500">Creates a new sheet if it doesn't exist, or appends a new column if it does.</p>
+                    </div>
+
+                    <!-- Gemini Model Selection -->
+                    <div>
+                        <label for="model-name" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Gemini Model Selector</label>
+                        <select id="model-name" name="model_name" 
+                            class="block w-full px-3 py-3 bg-slate-950/80 border border-slate-800 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-lg text-slate-200 text-sm outline-none transition-all">
+                            <option value="gemini-3.5-flash">Gemini 3.5 Flash (Recommended)</option>
+                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Fast Fallback)</option>
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                            <option value="gemini-flash-latest">Gemini Flash (Latest Stable)</option>
+                        </select>
+                        <p class="mt-1.5 text-xs text-slate-500">If your quota for Gemini 3.5 Flash is limited, select a fallback or let the app auto-retry alternative models.</p>
+                    </div>
+
+                    <!-- Gender Selection -->
+                    <div>
+                        <span class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Biological Gender Selector</span>
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- Female Option -->
+                            <label class="relative flex flex-col p-4 bg-slate-950/50 hover:bg-slate-900/50 border border-slate-800 hover:border-brand-500/40 rounded-xl cursor-pointer transition-all group duration-300">
+                                <input type="radio" name="gender" value="Female" checked class="sr-only peer">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="text-sm font-bold text-slate-200 group-hover:text-white transition-colors">Female</div>
+                                    <!-- Indicator circle -->
+                                    <div class="h-5 w-5 rounded-full border border-slate-700 flex items-center justify-center bg-slate-900 peer-checked:border-brand-500 peer-checked:bg-brand-500 transition-all">
+                                        <div class="h-2 w-2 rounded-full bg-white scale-0 peer-checked:scale-100 transition-transform"></div>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-slate-500">Includes estrogen-heavy hormone tracking (E2, Progesterone, LH, FSH)</span>
+                                <!-- Custom peer borders -->
+                                <div class="absolute inset-0 border border-transparent rounded-xl peer-checked:border-brand-500/80 pointer-events-none transition-all duration-300"></div>
+                            </label>
+
+                            <!-- Male Option -->
+                            <label class="relative flex flex-col p-4 bg-slate-950/50 hover:bg-slate-900/50 border border-slate-800 hover:border-brand-500/40 rounded-xl cursor-pointer transition-all group duration-300">
+                                <input type="radio" name="gender" value="Male" class="sr-only peer">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="text-sm font-bold text-slate-200 group-hover:text-white transition-colors">Male</div>
+                                    <!-- Indicator circle -->
+                                    <div class="h-5 w-5 rounded-full border border-slate-700 flex items-center justify-center bg-slate-900 peer-checked:border-brand-500 peer-checked:bg-brand-500 transition-all">
+                                        <div class="h-2 w-2 rounded-full bg-white scale-0 peer-checked:scale-100 transition-transform"></div>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-slate-500">Includes male hormone panel (Testosterone, Free Test, DHT, PSA, SHBG)</span>
+                                <!-- Custom peer borders -->
+                                <div class="absolute inset-0 border border-transparent rounded-xl peer-checked:border-brand-500/80 pointer-events-none transition-all duration-300"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- File Drop Zone -->
+                    <div>
+                        <span class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Upload Blood Test File</span>
+                        <div id="drop-zone" class="border-2 border-dashed border-slate-800 hover:border-brand-500/50 bg-slate-950/40 rounded-xl px-6 py-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all group relative">
+                            <!-- Overlay input -->
+                            <input type="file" id="file-input" name="file" accept="image/*,application/pdf,text/plain" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+                            
+                            <div class="h-12 w-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center group-hover:bg-slate-850 group-hover:border-brand-500/30 transition-all mb-4">
+                                <svg class="h-6 w-6 text-slate-400 group-hover:text-brand-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                            </div>
+                            
+                            <p class="text-sm font-medium text-slate-200 group-hover:text-slate-100 transition-colors">Drag and drop your file here, or click to browse</p>
+                            <p class="text-xs text-slate-500 mt-1">Supports PDF, PNG, JPEG, WEBP, or TXT formats</p>
+                            
+                            <!-- Display File Name when Selected -->
+                            <div id="selected-file-info" class="hidden mt-4 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center space-x-2 text-xs max-w-full">
+                                <svg class="h-4 w-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span id="selected-filename" class="text-emerald-300 font-medium truncate max-w-xs">filename.pdf</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="btn-submit"
+                        class="w-full py-4 px-6 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 active:scale-[0.99] text-white font-semibold rounded-xl transition-all shadow-lg shadow-brand-500/20 flex items-center justify-center space-x-2 text-sm select-none z-10 relative">
+                        <span>Process & Open in Excel</span>
+                        <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                        </svg>
+                    </button>
+
+                </form>
+            </div>
+        </section>
+
+        <!-- Right Column: Status Pipeline and Live Results -->
+        <section class="lg:col-span-5 flex flex-col space-y-6">
+            
+            <!-- Pipeline Progress Tracker Card -->
+            <div id="status-card" class="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-2xl relative overflow-hidden flex flex-col flex-grow min-h-[300px]">
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-transparent"></div>
+                
+                <h2 class="text-xl font-bold mb-4 text-slate-100 flex items-center justify-between">
+                    <span>Processing Pipeline</span>
+                    <span id="overall-status-pill" class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700 font-normal">Idle</span>
+                </h2>
+
+                <!-- Process Steps -->
+                <div class="space-y-6 my-auto">
+                    
+                    <!-- Step 1: Upload -->
+                    <div class="flex items-start space-x-4">
+                        <div id="step-icon-1" class="h-8 w-8 rounded-full bg-slate-950 border border-slate-800 text-slate-500 flex items-center justify-center shrink-0 font-bold text-sm transition-all duration-300">1</div>
+                        <div>
+                            <h3 id="step-title-1" class="text-sm font-semibold text-slate-400 transition-colors">Uploading Document</h3>
+                            <p class="text-xs text-slate-500">Transmitting lab file contents to server</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Gemini Parsing -->
+                    <div class="flex items-start space-x-4">
+                        <div id="step-icon-2" class="h-8 w-8 rounded-full bg-slate-950 border border-slate-800 text-slate-500 flex items-center justify-center shrink-0 font-bold text-sm transition-all duration-300">2</div>
+                        <div>
+                            <h3 id="step-title-2" class="text-sm font-semibold text-slate-400 transition-colors">Gemini 3.5 Flash Analysis</h3>
+                            <p class="text-xs text-slate-500">Multimodal extraction of test values and date</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Excel Writing -->
+                    <div class="flex items-start space-x-4">
+                        <div id="step-icon-3" class="h-8 w-8 rounded-full bg-slate-950 border border-slate-800 text-slate-500 flex items-center justify-center shrink-0 font-bold text-sm transition-all duration-300">3</div>
+                        <div>
+                            <h3 id="step-title-3" class="text-sm font-semibold text-slate-400 transition-colors">Spreadsheet Database Write</h3>
+                            <p class="text-xs text-slate-500">Fuzzy-matching names and appending data column</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Launching Excel -->
+                    <div class="flex items-start space-x-4">
+                        <div id="step-icon-4" class="h-8 w-8 rounded-full bg-slate-950 border border-slate-800 text-slate-500 flex items-center justify-center shrink-0 font-bold text-sm transition-all duration-300">4</div>
+                        <div>
+                            <h3 id="step-title-4" class="text-sm font-semibold text-slate-400 transition-colors">Launching Local Spreadsheet</h3>
+                            <p class="text-xs text-slate-500">Opening updated file with system launcher</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Live Logs / Status Feedback -->
+                <div id="logs-area" class="mt-6 bg-slate-950/60 border border-slate-900 rounded-lg p-3 text-xs font-mono text-slate-500 min-h-[60px] flex items-center justify-center text-center">
+                    Ready to receive laboratory documents.
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+
+
+    <!-- Footer -->
+    <footer class="w-full border-t border-slate-900/80 bg-slate-950/50 py-4 text-center text-xs text-slate-500 z-10">
+        Labs Tracker Web App &copy; 2026. Made with Gemini 3.5 Flash & openpyxl.
+    </footer>
+
+    <!-- Frontend Scripting Logic -->
+    <script>
+        const form = document.getElementById('lab-form');
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const selectedFileInfo = document.getElementById('selected-file-info');
+        const selectedFilename = document.getElementById('selected-filename');
+        const btnOpenExcel = document.getElementById('btn-open-excel');
+        const btnSubmit = document.getElementById('btn-submit');
+        
+        // Progress steps elements
+        const stepIcon1 = document.getElementById('step-icon-1');
+        const stepIcon2 = document.getElementById('step-icon-2');
+        const stepIcon3 = document.getElementById('step-icon-3');
+        const stepIcon4 = document.getElementById('step-icon-4');
+        
+        const stepTitle1 = document.getElementById('step-title-1');
+        const stepTitle2 = document.getElementById('step-title-2');
+        const stepTitle3 = document.getElementById('step-title-3');
+        const stepTitle4 = document.getElementById('step-title-4');
+        
+        const overallStatusPill = document.getElementById('overall-status-pill');
+        const logsArea = document.getElementById('logs-area');
+        
+
+
+        // File Selection Handlers
+        fileInput.addEventListener('change', (e) => {
+            if (fileInput.files.length > 0) {
+                showSelectedFile(fileInput.files[0].name);
+            }
+        });
+
+        // Drag & Drop Styling Handlers
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-brand-500/80', 'bg-brand-500/5');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-brand-500/80', 'bg-brand-500/5');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                showSelectedFile(files[0].name);
+            }
+        });
+
+        function showSelectedFile(name) {
+            selectedFilename.textContent = name;
+            selectedFileInfo.classList.remove('hidden');
+            // Log file selection
+            setLog(`Selected file: ${name}`);
+        }
+
+        function setLog(text, isError = false) {
+            logsArea.textContent = text;
+            if (isError) {
+                logsArea.classList.remove('text-slate-500', 'text-brand-400');
+                logsArea.classList.add('text-red-400');
+            } else {
+                logsArea.classList.remove('text-red-400');
+                logsArea.classList.add('text-slate-500');
+            }
+        }
+
+        // Reset all steps to idle state
+        function resetPipelineUI() {
+            const steps = [
+                { icon: stepIcon1, title: stepTitle1, num: '1' },
+                { icon: stepIcon2, title: stepTitle2, num: '2' },
+                { icon: stepIcon3, title: stepTitle3, num: '3' },
+                { icon: stepIcon4, title: stepTitle4, num: '4' }
+            ];
+            
+            steps.forEach(s => {
+                s.icon.innerHTML = s.num;
+                s.icon.className = "h-8 w-8 rounded-full bg-slate-950 border border-slate-800 text-slate-500 flex items-center justify-center shrink-0 font-bold text-sm transition-all duration-300";
+                s.title.className = "text-sm font-semibold text-slate-400 transition-colors";
+            });
+        }
+
+        // Set state for a specific step: 'active', 'completed', 'failed'
+        defStatusClass = "h-8 w-8 rounded-full flex items-center justify-center shrink-0 font-bold text-sm transition-all duration-300 ";
+        
+        function setStepState(stepNumber, state) {
+            let iconElement, titleElement;
+            if (stepNumber === 1) { iconElement = stepIcon1; titleElement = stepTitle1; }
+            else if (stepNumber === 2) { iconElement = stepIcon2; titleElement = stepTitle2; }
+            else if (stepNumber === 3) { iconElement = stepIcon3; titleElement = stepTitle3; }
+            else if (stepNumber === 4) { iconElement = stepIcon4; titleElement = stepTitle4; }
+            
+            if (state === 'active') {
+                iconElement.className = defStatusClass + "bg-brand-500/20 border border-brand-500 text-brand-400 shadow-md shadow-brand-500/10 animate-pulse";
+                iconElement.innerHTML = `
+                    <svg class="animate-spin h-4 w-4 text-brand-400" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                `;
+                titleElement.className = "text-sm font-semibold text-brand-400 transition-colors";
+            } else if (state === 'completed') {
+                iconElement.className = defStatusClass + "bg-emerald-500/20 border border-emerald-500 text-emerald-400 shadow-md shadow-emerald-500/10";
+                iconElement.innerHTML = `
+                    <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                `;
+                titleElement.className = "text-sm font-semibold text-emerald-400 transition-colors";
+            } else if (state === 'failed') {
+                iconElement.className = defStatusClass + "bg-red-500/20 border border-red-500 text-red-400 shadow-md shadow-red-500/10";
+                iconElement.innerHTML = `
+                    <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                `;
+                titleElement.className = "text-sm font-semibold text-red-400 transition-colors";
+            }
+        }
+
+        // Open excel manually trigger
+        btnOpenExcel.addEventListener('click', async () => {
+            const excelPath = document.getElementById('excel-path').value.strip();
+            if (!excelPath) {
+                alert("Please enter a valid Excel path.");
+                return;
+            }
+            
+            setLog(`Requesting system to open Excel sheet at: ${excelPath}`);
+            const formData = new FormData();
+            formData.append('excel_path', excelPath);
+            
+            try {
+                const response = await fetch('/open-excel', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    setLog(`Spreadsheet opened successfully: ${data.message}`);
+                } else {
+                    setLog(`Error opening file: ${data.detail}`, true);
+                }
+            } catch (err) {
+                setLog(`Network error: ${err.message}`, true);
+            }
+        });
+
+        // Submit form handler
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const excelPath = document.getElementById('excel-path').value.trim();
+            const files = fileInput.files;
+            
+            if (!excelPath) {
+                setLog("Error: Excel file path is required.", true);
+                return;
+            }
+            if (files.length === 0) {
+                setLog("Error: Please select or drop a blood test file to upload.", true);
+                return;
+            }
+            
+            // UI state updates
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Processing...</span>
+            `;
+            
+            resetPipelineUI();
+            overallStatusPill.textContent = "Processing";
+            overallStatusPill.className = "text-xs bg-brand-500/10 text-brand-400 px-3 py-1 rounded-full border border-brand-500/30";
+            
+            // Build Form Data
+            const formData = new FormData();
+            formData.append('excel_path', excelPath);
+            formData.append('gender', document.querySelector('input[name="gender"]:checked').value);
+            formData.append('model_name', document.getElementById('model-name').value);
+            formData.append('file', files[0]);
+            
+            // -------------------- Step 1: Uploading --------------------
+            setStepState(1, 'active');
+            setLog("Uploading laboratory report file to backend...");
+            
+            try {
+                // Simulate quick upload state since local is instant
+                setTimeout(() => {
+                    setStepState(1, 'completed');
+                    // -------------------- Step 2: Parsing --------------------
+                    setStepState(2, 'active');
+                    setLog("Calling Gemini 3.5 Flash API. Extracting blood markers (may take a few seconds)...");
+                }, 800);
+                
+                const response = await fetch('/process-labs', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const resData = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(resData.detail || "Unknown error occurred on server.");
+                }
+                
+                // Complete parsing state
+                setStepState(2, 'completed');
+                
+                // -------------------- Step 3: Excel Writing --------------------
+                setStepState(3, 'active');
+                setLog("Writing extracted values to Excel. Row mapping and formatting template...");
+                
+                setTimeout(() => {
+                    setStepState(3, 'completed');
+                    
+                    // -------------------- Step 4: System Launching --------------------
+                    setStepState(4, 'active');
+                    setLog("Launching local spreadsheet in default app...");
+                    
+                    setTimeout(() => {
+                        if (resData.opened_locally) {
+                            setStepState(4, 'completed');
+                            setLog("Spreadsheet updated and launched successfully!");
+                        } else {
+                            setStepState(4, 'failed');
+                            setLog("Spreadsheet updated, but could not launch. Please open manually.", true);
+                        }
+                        
+                        overallStatusPill.textContent = "Success";
+                        overallStatusPill.className = "text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30";
+                        
+                        resetSubmitButton();
+                    }, 800);
+                }, 800);
+                
+            } catch (err) {
+                // Fail current stage
+                if (stepTitle2.className.includes('brand')) {
+                    setStepState(2, 'failed');
+                } else if (stepTitle3.className.includes('brand')) {
+                    setStepState(3, 'failed');
+                } else {
+                    setStepState(1, 'failed');
+                }
+                
+                setLog(`Pipeline Failed: ${err.message}`, true);
+                overallStatusPill.textContent = "Failed";
+                overallStatusPill.className = "text-xs bg-red-500/10 text-red-400 px-3 py-1 rounded-full border border-red-500/30";
+                resetSubmitButton();
+            }
+        });
+
+        function resetSubmitButton() {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = `
+                <span>Process & Open in Excel</span>
+                <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+            `;
+        }
+
+
+    </script>
+</body>
+</html>
